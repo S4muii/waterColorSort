@@ -3,6 +3,8 @@ import itertools
 import math
 from   pprint import pprint
 import copy 
+from lolviz import listviz
+
 
 # from numpy import *
 
@@ -51,24 +53,24 @@ def transferItem(srcStack,dstStack):
         
 
 def gameWon():
-    global didIwinYetUGH
+    global didIwinYet
     #for each stack . if all items are the same or if there's no items at all return true
     #the list has a Bool value for each stack . if that bool value is true then this stack has passed the test
     #Need to make sure that every bool value is equal true
     
-    if didIwinYetUGH:
-        return didIwinYetUGH
+    if didIwinYet:
+        return didIwinYet
     
     #0 means that there was no items - 1 means that there was a bunch of items and all of em were True
     allItemsMatching = [len(set(stack)) in [0,1] for stack in listOfStacks]
     if set(allItemsMatching) == {True}:
         print("GAMEWONNNNN ,Decisions Made:\n{{{" )
         print(*moves,"}}}}",sep="\n")
-        didIwinYetUGH=True
+        didIwinYet=True
     else:
-        didIwinYetUGH=False
+        didIwinYet=False
     
-    return didIwinYetUGH
+    return didIwinYet
         
         
 
@@ -77,47 +79,48 @@ def solveGame():
 
     #ensure that those lists are taken from the global vars 
     global listOfStacks,OriginallistOfStacks,trials,maxNumOfTrials,listOfPermutations
-    global recursionDepth,maxRecursionDepth,stuckNoMoves,MaxstuckNoMoves
+    global stuckNoMoves,MaxstuckNoMoves
     
     #BASE CASE - if the game is won in that branch then return out of the function already . game is over
     while True:
         if not gameWon():
             if trials < maxNumOfTrials:
      
-                recursionDepth+=1
-                i=random.choice(listOfPermutations)
+                
+                newMove=random.choice(listOfPermutations)
+                ##HERE you need to trim the viable choices 
                     
                 #second base case - if game is lost in that branch then just try out a new completely different random branch.
-                if len(moves) >= maxMoves or recursionDepth >= maxRecursionDepth or stuckNoMoves >= MaxstuckNoMoves:
+                if len(moves) >= maxMoves or stuckNoMoves >= MaxstuckNoMoves:
                     trials +=1
-                    recursionDepth=0
+                    print( "trials:%06d/%06d"%(trials,maxNumOfTrials-1))
+                    stuckNoMoves=0
                     moves.clear()
                     listOfStacks = copy.deepcopy(OriginallistOfStacks)
-                    print("reseting the listOfStacks to the original value and moves as well")
+                    # print("reseting the listOfStacks to the original value and moves as well")
                     continue
                 
                 #HACKS . couple of hacks to speed up the progress
                 
                 #Don't allow reversing the last move - Unproductive
                 if len(moves)>0:
-                    if i[1] is moves[-1][0] and i[0] is moves[-1][1]:
-                        print("curr_src,curr_dst is prev_dst,prev_src")
+                    if newMove[DST] is moves[LAST][SRC] and newMove[SRC] is moves[LAST][DST]:
                         stuckNoMoves+=1
                         continue
                     
                 #if the srcStack has 3 or 4 of matching elements then don't do it - Unproductive as well 
-                if len(set(i[0]))==1 and len(i[0])>=3:
+                if len(set(listOfStacks[newMove[SRC]]))==1 and len(listOfStacks[newMove[SRC]])>=3:
                     stuckNoMoves+=1
-                    print("all items in the srcStack is matching and it's either 3 or 4 items in length PS: Stack is ",i[0])
+                    # print("all items in the srcStack is matching and it's either 3 or 4 items in length PS: Stack is ",i[0])
                     continue
                 
                 #if you get stuck for 5 iterations not sure what to do then you lose
                 
                 #successful
-                if transferItem(i[0],i[1]) == 0:
-                    moves.append([i[0],i[1]])
-                    print("[*] Operation between",listOfStacks.index(i[0]),"->",listOfStacks.index(i[1]))
-                    printListOfStacks()
+                if transferItem(listOfStacks[newMove[SRC]],listOfStacks[newMove[DST]]) == 0:
+                    moves.append([newMove[SRC],newMove[DST]])
+                    # print("[*] Operation between",listOfStacks.index(i[0]),"->",listOfStacks.index(i[1]))
+                    # printListOfStacks()
                 else:
                     stuckNoMoves+=1
             else:
@@ -125,7 +128,7 @@ def solveGame():
         else:
             break
             
-    print("Game won here's how" if didIwinYetUGH else "Game is not solvable or needs to change the parameters probably")
+    print("Game won" if didIwinYet else "Game is not solvable or needs to change the parameters probably")
             
                 
         
@@ -136,21 +139,21 @@ def solveGame():
 
 seed=random.randint(1, 100000)
 #random one 
-random.seed(89259)
+# random.seed(89259)
+# random.seed(92339)
+random.seed(seed)
 print("seed is ,",seed)
 
 #constants
 MaximumNumOfBallsPerStack=4
-didIwinYetUGH = False
-maxMoves = 100
-maxNumOfTrials = 100
-maxRecursionDepth = 100
-stuckNoMoves = 0
-MaxstuckNoMoves= 100
+maxMoves,maxNumOfTrials,MaxstuckNoMoves = 100000,10000,10000
+listOfStacks,listOfBalls,numOfFullStacks,numOfEmptyStacks = [],[],12,2
+SRC,DST,LAST = 0,1,-1
 
 #vars
-listOfStacks,listOfBalls,numOfFullStacks,numOfEmptyStacks = [],[],4,1
-moves,trials,recursionDepth = [],0,0
+moves=[]
+stuckNoMoves,trials= 0,0
+didIwinYet = False
 
 
 
@@ -169,11 +172,28 @@ random.shuffle(listOfBalls)
 #Create The stacks
 
 #fullItemedStacks 
-listOfStacks += [[listOfBalls.pop() for j in range(MaximumNumOfBallsPerStack)] for i in range(numOfFullStacks)]
+#randomListOfStacks
+# listOfStacks += [[listOfBalls.pop() for j in range(MaximumNumOfBallsPerStack)] for i in range(numOfFullStacks)]
+#MYlistOfStacks
+listOfStacks +=[
+    [4,3,2,1],
+    [8,7,6,5],
+    [4,6,1,5],
+    [5,1,2,9],
+    [3,11,10,9],
+    [3,7,10,3],
+    [4,2,11,12],
+    [12,9,12,2],
+    [9,11,10,8],
+    [8,11,7,8],
+    [6,6,12,4],
+    [1,5,7,10],
+    ]
 #one Empty stack appeneded
 listOfStacks += [[] for i in range(numOfEmptyStacks)]
 #list of permutations
-listOfPermutations = list(itertools.permutations(listOfStacks,2))
+listOfPermutations = list(itertools.permutations([i for i in range(numOfFullStacks+numOfEmptyStacks)],2))
+
 
 
 OriginallistOfStacks = copy.deepcopy(listOfStacks)
